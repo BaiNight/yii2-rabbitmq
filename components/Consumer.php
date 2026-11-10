@@ -228,7 +228,7 @@ class Consumer extends BaseRabbitMQ
 
                 throw $e;
             }
-            if (!AMQP_WITHOUT_SIGNALS && extension_loaded('pcntl'))
+            if (extension_loaded('pcntl') && (defined('AMQP_WITHOUT_SIGNALS') ? !AMQP_WITHOUT_SIGNALS : true))
             {
                 pcntl_signal_dispatch();
             }
@@ -423,27 +423,29 @@ class Consumer extends BaseRabbitMQ
      */
     protected function sendResult(AMQPMessage $msg, $processFlag)
     {
-        // true in testing environment
-        if (!isset($msg->delivery_info['channel']))
+        // channel is null in testing environment
+        $channel = $msg->getChannel();
+        if (null === $channel)
         {
             return;
         }
+        $deliveryTag = $msg->getDeliveryTag();
 
         // respond to the broker with appropriate reply code
         if ($processFlag === ConsumerInterface::MSG_REQUEUE || false === $processFlag)
         {
             // Reject and requeue message to RabbitMQ
-            $msg->delivery_info['channel']->basic_reject($msg->delivery_info['delivery_tag'], true);
+            $channel->basic_reject($deliveryTag, true);
         }
         elseif ($processFlag === ConsumerInterface::MSG_REJECT)
         {
             // Reject and drop
-            $msg->delivery_info['channel']->basic_reject($msg->delivery_info['delivery_tag'], false);
+            $channel->basic_reject($deliveryTag, false);
         }
         else
         {
             // Remove message from queue only if callback return not false
-            $msg->delivery_info['channel']->basic_ack($msg->delivery_info['delivery_tag']);
+            $channel->basic_ack($deliveryTag);
         }
     }
 

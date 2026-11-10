@@ -374,7 +374,7 @@ class RabbitMQController extends Controller
      */
     private function validateConsumerOptions(Consumer $consumer)
     {
-        if (!AMQP_WITHOUT_SIGNALS && extension_loaded('pcntl'))
+        if (extension_loaded('pcntl') && (defined('AMQP_WITHOUT_SIGNALS') ? !AMQP_WITHOUT_SIGNALS : true))
         {
             if (!function_exists('pcntl_signal'))
             {
